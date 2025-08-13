@@ -147,8 +147,9 @@ INSTRUCTIONS:
    - Moderate → Could cause minor harm or delay treatment.
    - High → Could cause serious harm, permanent injury, or major health risks.
    - Critical → Could cause death or life-threatening consequences.
-4. Include EXPLANATION for MISINFORMATION or UNCLEAR claims.
-5. Always provide at least 2 reputable SOURCES (WHO, CDC, PubMed, NIH, Mayo Clinic, etc.) for your classification.
+4.  Assign a CONFIDENCE SCORE from 1 (low confidence) to 10 (high confidence) for your verdict.
+5. Include EXPLANATION for MISINFORMATION or UNCLEAR claims.
+6. Always provide at least 2 reputable SOURCES (WHO, CDC, PubMed, NIH, Mayo Clinic, etc.) for your classification.
 
 Return JSON ONLY in this format:
 {
@@ -158,6 +159,7 @@ Return JSON ONLY in this format:
       "verdict": "MISINFORMATION|TRUE|UNCLEAR",
       "explanation": "<required if MISINFORMATION or UNCLEAR>",
       "danger": "Low|Moderate|High|Critical",
+      "confidenceScore": <number>,
       "sources": ["https://...", "https://..."]
     }
   ]

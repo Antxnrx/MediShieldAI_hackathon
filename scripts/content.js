@@ -172,7 +172,9 @@ body.dark-theme .ms-controls button:hover { background-color: #0056b3; }
 }
 body.dark-theme #medshield-footer { border-top:1px solid #333; color:#aaa; }
 
-mark { background: yellow; padding: 0 2px; }
+mark.ms-true { background: #d2f7d2; padding: 0 2px; }
+mark.ms-misinformation { background: #f7d2d2; padding: 0 2px; }
+mark.ms-unclear { background: #f7f3d2; padding: 0 2px; }
 `;
 
   // -------- Utility: inject css string into page --------
@@ -195,7 +197,7 @@ mark { background: yellow; padding: 0 2px; }
   }
 
   // -------- Safe text-highlighter using TreeWalker (only text nodes) --------
-  function highlightTextInPage(needle) {
+  function highlightTextInPage(needle, className) {
     try {
       if (!needle || typeof needle !== "string") return;
       const trimmed = needle.trim();
@@ -215,7 +217,7 @@ mark { background: yellow; padding: 0 2px; }
             const tag = parent.tagName.toLowerCase();
             // skip interactive or script/style elements
             if (
-              ["script", "style", "textarea", "input", "iframe", "noscript", "svg"].includes(tag)
+              ["script", "style", "textarea", "input", "iframe", "noscript", "svg", "mark"].includes(tag)
             )
               return NodeFilter.FILTER_REJECT;
             if (parent.closest && parent.closest("#medshield-sidebar"))
@@ -243,6 +245,7 @@ mark { background: yellow; padding: 0 2px; }
             frag.appendChild(document.createTextNode(text.slice(lastIndex, idx)));
           const mark = document.createElement("mark");
           mark.textContent = m[0];
+          mark.className = className;
           frag.appendChild(mark);
           lastIndex = regex.lastIndex;
           if (m.index === regex.lastIndex) regex.lastIndex++; // avoid zero-length match loops
@@ -350,6 +353,17 @@ mark { background: yellow; padding: 0 2px; }
           const verdictRaw = String(r?.verdict || "").toLowerCase();
           const explanation = r?.explanation;
           const danger = r?.danger;
+          const confidenceScore = r?.confidenceScore;
+
+          // verdict class
+          let verdictClass = "unclear";
+          if (verdictRaw.includes("misinformation") || verdictRaw.includes("false")) {
+            verdictClass = "misinformation";
+          } else if (verdictRaw.includes("true") || verdictRaw.includes("accurate")) {
+            verdictClass = "true";
+          }
+
+          if (claim) highlightTextInPage(claim, `ms-${verdictClass}`); // highlight in page
 
           const card = document.createElement("div");
           card.className = "ms-card";
@@ -361,15 +375,6 @@ mark { background: yellow; padding: 0 2px; }
           const claimText = document.createElement("p");
           claimText.textContent = claim;
           card.appendChild(claimText);
-
-          // verdict class
-          let verdictClass = "unclear";
-          if (verdictRaw.includes("misinformation") || verdictRaw.includes("false")) {
-            verdictClass = "misinformation";
-            if (claim) highlightTextInPage(claim); // highlight in page
-          } else if (verdictRaw.includes("true") || verdictRaw.includes("accurate")) {
-            verdictClass = "true";
-          }
 
           const verdict = document.createElement("div");
           verdict.className = `ms-verdict ${verdictClass}`;
@@ -386,7 +391,7 @@ mark { background: yellow; padding: 0 2px; }
             expl.textContent = explanation;
             card.appendChild(expl);
           }
-
+          
           if (danger) {
             const dangerHeader = document.createElement("h3");
             dangerHeader.textContent = "Danger Level";
@@ -394,7 +399,7 @@ mark { background: yellow; padding: 0 2px; }
             card.appendChild(dangerHeader);
 
             const dangerText = document.createElement("p");
-            dangerText.textContent = danger;
+            dangerText.textContent = `${danger} (Confidence: ${confidenceScore}/10)`;
             card.appendChild(dangerText);
 
             const dangerLevel = String(danger).toLowerCase().trim();
